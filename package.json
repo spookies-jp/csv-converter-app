@@ -6,8 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "export": "next export",
-    "deploy": "next build && touch out/.nojekyll"
+    "export": "next export || echo 'Export command might be integrated in build for Next.js 13+'",
+    "deploy": "next build && (next export || echo 'Skipping export if not needed') && touch out/.nojekyll"
   },
   "dependencies": {
     "next": "^12.3.4",
