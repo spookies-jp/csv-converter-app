@@ -1,0 +1,30 @@
+FROM node:16-alpine AS builder
+
+WORKDIR /app
+
+# 依存関係のインストール
+COPY package*.json ./
+RUN npm ci
+
+# アプリケーションのコードをコピー
+COPY . .
+
+# アプリケーションのビルド
+RUN npm run build
+
+# 本番用イメージ
+FROM node:16-alpine AS runner
+
+WORKDIR /app
+
+ENV NODE_ENV production
+
+# 必要なファイルのみコピー
+COPY --from=builder /app/next.config.js ./
+COPY --from=builder /app/public ./public
+COPY --from=builder /app/.next ./.next
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/package.json ./package.json
+
+# アプリケーションの実行
+CMD ["npm", "start"]

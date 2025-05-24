@@ -1,0 +1,19 @@
+{
+  "name": "csv-converter-app",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "export": "next export",
+    "deploy": "next build && touch out/.nojekyll"
+  },
+  "dependencies": {
+    "next": "^12.3.4",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "iconv-lite": "^0.6.3",
+    "jschardet": "^3.0.0"
+  }
+}
