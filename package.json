@@ -4,16 +4,16 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "next build && next export",
     "start": "next start",
-    "export": "next export || echo 'Export command might be integrated in build for Next.js 13+'",
-    "deploy": "next build && (next export || echo 'Skipping export if not needed') && touch out/.nojekyll"
+    "export": "next export",
+    "deploy": "npm run build && touch out/.nojekyll"
   },
   "dependencies": {
-    "next": "^12.3.4",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
     "iconv-lite": "^0.6.3",
-    "jschardet": "^3.0.0"
+    "jschardet": "^3.0.0",
+    "next": "^15.3.2",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
   }
 }

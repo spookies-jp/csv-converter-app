@@ -1,6 +1,9 @@
 import { useState, useRef } from 'react';
 import Head from 'next/head';
 import styles from '../styles/Home.module.css';
+import jschardet from 'jschardet';
+import iconv from 'iconv-lite';
+import { Buffer } from 'buffer';
 
 export default function Home() {
   const [convertedFiles, setConvertedFiles] = useState([]);
@@ -8,57 +11,46 @@ export default function Home() {
   const [error, setError] = useState('');
   const fileInputRef = useRef(null);
 
-  // ファイル追加処理
   const handleFileUpload = async (e) => {
     const files = Array.from(e.target.files);
-    
     if (files.length === 0) return;
-    
-    // CSVファイルのみを選択
+
     const csvFiles = files.filter(file => file.name.endsWith('.csv'));
-    
     if (csvFiles.length === 0) {
       setError('CSVファイルのみアップロードできます');
       return;
     }
-    
+
     setIsLoading(true);
     setError('');
-    
+
     try {
       const results = [];
-      
-      // 各ファイルを順番に処理
+
       for (const file of csvFiles) {
-        const buffer = await file.arrayBuffer();
-        
-        // サーバーレス関数に送信
-        const response = await fetch('/api/convert', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/octet-stream',
-            'X-File-Name': encodeURIComponent(file.name)
-          },
-          body: buffer,
-        });
-        
-        if (!response.ok) {
-          throw new Error(`${file.name}の変換中にエラーが発生しました`);
+        const arrayBuffer = await file.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+        const detected = jschardet.detect(buffer);
+
+        if (!detected || !detected.encoding || detected.confidence < 0.6) {
+          throw new Error(`${file.name} の文字コードを特定できませんでした`);
         }
-        
-        const data = await response.json();
+
+        const encoding = detected.encoding;
+        const isAlreadyUtf8 = encoding.toLowerCase() === 'utf-8' || encoding.toLowerCase() === 'ascii';
+        const decodedText = iconv.decode(buffer, encoding);
+        const utf8WithBom = '\uFEFF' + decodedText;
+
         results.push({
           originalName: file.name,
-          content: data.content,
-          originalEncoding: data.originalEncoding,
-          isAlreadyUtf8: data.isAlreadyUtf8
+          content: utf8WithBom,
+          originalEncoding: encoding,
+          isAlreadyUtf8
         });
       }
-      
-      // 既存のファイルと新しいファイルを結合
+
       setConvertedFiles(prevFiles => [...prevFiles, ...results]);
-      
-      // ファイル入力をリセットして、同じファイルを再選択できるようにする
+
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
@@ -70,7 +62,6 @@ export default function Home() {
     }
   };
 
-  // ファイル削除機能
   const removeFile = (index) => {
     setConvertedFiles(prev => {
       const newFiles = [...prev];
@@ -81,7 +72,7 @@ export default function Home() {
 
   const downloadFile = (content, fileName) => {
     if (!content) return;
-    
+
     const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -90,12 +81,7 @@ export default function Home() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    URL.revokeObjectURL(url); // メモリリークを防止
-  };
-
-  // 重複ファイルのチェック
-  const hasDuplicateFile = (fileName) => {
-    return convertedFiles.some(file => file.originalName === fileName);
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -109,7 +95,7 @@ export default function Home() {
 
       <main className={styles.main}>
         <h1 className={styles.title}>CSV文字コード変換アプリ</h1>
-        
+
         <p className={styles.description}>
           CSVファイルをUTF-8に変換します
         </p>
@@ -117,11 +103,6 @@ export default function Home() {
         <div className={styles.card}>
           <div className={styles.uploadContainer}>
             <label htmlFor="csvFile" className={styles.uploadButton}>
-              <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M5.83301 14.1667H14.1663V5.83333H10.8163L9.16634 4.16667H5.83301V14.1667Z" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M8.33301 8.33333H11.6663" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M10 10V6.66667" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
               CSVファイルを追加
               <input
                 type="file"
@@ -144,18 +125,13 @@ export default function Home() {
               変換処理中...
             </div>
           )}
-          
+
           {error && (
             <div className={styles.error}>
-              <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M10 6.66667V10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M10 13.3333H10.0083" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M9.99996 16.6667C13.6819 16.6667 16.6666 13.6819 16.6666 10C16.6666 6.31811 13.6819 3.33334 9.99996 3.33334C6.31807 3.33334 3.33329 6.31811 3.33329 10C3.33329 13.6819 6.31807 16.6667 9.99996 16.6667Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
               {error}
             </div>
           )}
-          
+
           {convertedFiles.length > 0 && (
             <div className={styles.results}>
               <h3>変換済みファイル</h3>
@@ -166,18 +142,12 @@ export default function Home() {
                       <div className={styles.fileInfo}>
                         <span className={styles.fileName}>{file.originalName}</span>
                         <span className={styles.encoding}>
-                          {file.isAlreadyUtf8 
-                            ? <span className={styles.alreadyUtf8}>
-                                <svg width="16" height="16" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                  <path d="M16.6667 5L7.50001 14.1667L3.33334 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                                </svg>
-                                既にUTF-8形式
-                              </span>
-                            : `元の文字コード: ${file.originalEncoding}`
-                          }
+                          {file.isAlreadyUtf8
+                            ? '既にUTF-8形式'
+                            : `元の文字コード: ${file.originalEncoding}`}
                         </span>
                       </div>
-                      <button 
+                      <button
                         onClick={() => removeFile(index)}
                         className={styles.removeButton}
                         title="ファイルを削除"
@@ -186,34 +156,24 @@ export default function Home() {
                         ×
                       </button>
                     </div>
-                    <button 
+                    <button
                       onClick={() => downloadFile(file.content, file.originalName)}
-                      className={`${styles.downloadButton} ${file.isAlreadyUtf8 ? styles.downloadButtonUtf8 : ''}`}
+                      className={styles.downloadButton}
                     >
-                      <svg width="18" height="18" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M10 13.3333L10 3.33333" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                        <path d="M6.66669 10L10 13.3333L13.3334 10" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                        <path d="M3.33331 16.6667H16.6666" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
-                      {file.isAlreadyUtf8 
-                        ? 'ダウンロード' 
-                        : 'UTF-8でダウンロード'
-                      }
+                      {file.isAlreadyUtf8 ? 'ダウンロード' : 'UTF-8でダウンロード'}
                     </button>
                   </div>
                 ))}
               </div>
-              
-              {convertedFiles.length > 0 && (
-                <div className={styles.actionBar}>
-                  <button 
-                    onClick={() => setConvertedFiles([])}
-                    className={styles.clearAllButton}
-                  >
-                    全てのファイルを削除
-                  </button>
-                </div>
-              )}
+
+              <div className={styles.actionBar}>
+                <button
+                  onClick={() => setConvertedFiles([])}
+                  className={styles.clearAllButton}
+                >
+                  全てのファイルを削除
+                </button>
+              </div>
             </div>
           )}
         </div>

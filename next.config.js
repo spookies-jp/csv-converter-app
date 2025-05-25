@@ -1,6 +1,11 @@
+const isProd = process.env.NODE_ENV === 'production';
+
 module.exports = {
   reactStrictMode: true,
-  // GitHub Pages用の設定
-  assetPrefix: process.env.NODE_ENV === 'production' ? '/csv-converter-app/' : '',
-  basePath: process.env.NODE_ENV === 'production' ? '/csv-converter-app' : '',
-}
+  output: 'export',
+  assetPrefix: isProd ? '/csv-converter-app/' : '',
+  basePath: isProd ? '/csv-converter-app' : '',
+  images: {
+    unoptimized: true,
+  },
+};

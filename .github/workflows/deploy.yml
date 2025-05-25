@@ -12,6 +12,7 @@ permissions:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -19,38 +20,17 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '16'
+          node-version: '18'
           cache: 'npm'
-
-      - name: Debug Info
-        run: |
-          pwd
-          ls -la
-          node --version
-          npm --version
 
       - name: Install dependencies
         run: npm install
-        
-      - name: List package contents
-        run: |
-          cat package.json
-          ls -la node_modules
 
-      - name: Debug Next.js Config
-        run: cat next.config.js || echo "next.config.js not found"
-
-      - name: Build
-        run: npm run build
-        
-      - name: Export
-        run: npm run export || echo "Export command might have failed, checking directory structure"
-        
-      - name: Check output directory
+      - name: Build and Export
         run: |
-          ls -la
-          test -d out && ls -la out || echo "out directory not found"
-          touch out/.nojekyll || mkdir -p out && touch out/.nojekyll
+          npm run build
+          npm run export
+          mkdir -p out && touch out/.nojekyll
 
       - name: Deploy to GitHub Pages
         uses: JamesIves/github-pages-deploy-action@v4
