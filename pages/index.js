@@ -30,14 +30,20 @@ export default function Home() {
       for (const file of csvFiles) {
         const arrayBuffer = await file.arrayBuffer();
         const buffer = Buffer.from(arrayBuffer);
-        const detected = jschardet.detect(buffer);
 
-        if (!detected || !detected.encoding || detected.confidence < 0.6) {
+        const detected = jschardet.detect(buffer);
+        const encoding = detected?.encoding?.toLowerCase();
+
+        if (!encoding || detected.confidence < 0.3) {
           throw new Error(`${file.name} の文字コードを特定できませんでした`);
         }
 
-        const encoding = detected.encoding;
-        const isAlreadyUtf8 = encoding.toLowerCase() === 'utf-8' || encoding.toLowerCase() === 'ascii';
+        const supportedEncodings = ['utf-8', 'ascii', 'shift_jis', 'windows-1252'];
+        if (!supportedEncodings.includes(encoding)) {
+          throw new Error(`${file.name} は未対応の文字コードです（推定: ${encoding}）`);
+        }
+
+        const isAlreadyUtf8 = encoding === 'utf-8' || encoding === 'ascii';
         const decodedText = iconv.decode(buffer, encoding);
         const utf8WithBom = '\uFEFF' + decodedText;
 
@@ -49,11 +55,8 @@ export default function Home() {
         });
       }
 
-      setConvertedFiles(prevFiles => [...prevFiles, ...results]);
-
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
+      setConvertedFiles(prev => [...prev, ...results]);
+      if (fileInputRef.current) fileInputRef.current.value = '';
     } catch (err) {
       console.error('Error converting files:', err);
       setError('ファイルの変換中にエラーが発生しました: ' + err.message);
@@ -95,10 +98,7 @@ export default function Home() {
 
       <main className={styles.main}>
         <h1 className={styles.title}>CSV文字コード変換アプリ</h1>
-
-        <p className={styles.description}>
-          CSVファイルをUTF-8に変換します
-        </p>
+        <p className={styles.description}>CSVファイルをUTF-8に変換します</p>
 
         <div className={styles.card}>
           <div className={styles.uploadContainer}>
@@ -119,18 +119,8 @@ export default function Home() {
             )}
           </div>
 
-          {isLoading && (
-            <div className={styles.loading}>
-              <div className={styles.loadingSpinner}></div>
-              変換処理中...
-            </div>
-          )}
-
-          {error && (
-            <div className={styles.error}>
-              {error}
-            </div>
-          )}
+          {isLoading && <div className={styles.loading}>変換処理中...</div>}
+          {error && <div className={styles.error}>{error}</div>}
 
           {convertedFiles.length > 0 && (
             <div className={styles.results}>
@@ -147,12 +137,7 @@ export default function Home() {
                             : `元の文字コード: ${file.originalEncoding}`}
                         </span>
                       </div>
-                      <button
-                        onClick={() => removeFile(index)}
-                        className={styles.removeButton}
-                        title="ファイルを削除"
-                        aria-label="ファイルを削除"
-                      >
+                      <button onClick={() => removeFile(index)} className={styles.removeButton}>
                         ×
                       </button>
                     </div>
@@ -167,10 +152,7 @@ export default function Home() {
               </div>
 
               <div className={styles.actionBar}>
-                <button
-                  onClick={() => setConvertedFiles([])}
-                  className={styles.clearAllButton}
-                >
+                <button onClick={() => setConvertedFiles([])} className={styles.clearAllButton}>
                   全てのファイルを削除
                 </button>
               </div>
