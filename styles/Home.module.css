@@ -301,6 +301,42 @@
   color: var(--gray-900);
 }
 
+/* 置換統計表示 */
+.replacementStats {
+  background-color: #f0f9ff;
+  border: 1px solid #0ea5e9;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+  animation: fadeIn 0.5s ease;
+}
+
+.replacementStats h4 {
+  margin: 0 0 0.5rem 0;
+  color: #0369a1;
+  font-size: 1rem;
+}
+
+.replacementStats p {
+  margin: 0 0 0.75rem 0;
+  color: #0369a1;
+  font-weight: 500;
+}
+
+.replacementDetails {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.replacementDetail {
+  font-size: 0.875rem;
+  color: #075985;
+  padding: 0.25rem 0.5rem;
+  background-color: #e0f2fe;
+  border-radius: 4px;
+}
+
 @media (max-width: 768px) {
   .main {
     padding: 2rem 1rem;
