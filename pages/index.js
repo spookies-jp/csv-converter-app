@@ -6,13 +6,14 @@ import iconv from 'iconv-lite';
 import { Buffer } from 'buffer';
 import { StringReplacement } from '../components/StringReplacement';
 import { useStringReplacement } from '../hooks/useStringReplacement';
+
 export default function Home() {
   const [convertedFiles, setConvertedFiles] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [replacementStats, setReplacementStats] = useState(null);
   const fileInputRef = useRef(null);
-  
+
   // 文字列置換のフック
   const {
     replacementRules,
@@ -27,6 +28,7 @@ export default function Home() {
     applyReplacements,
     clearError: clearReplacementError
   } = useStringReplacement();
+
   const handleFileUpload = async (e) => {
     const files = Array.from(e.target.files);
     if (files.length === 0) return;
@@ -73,6 +75,7 @@ export default function Home() {
       setIsLoading(false);
     }
   };
+
   const removeFile = (index) => {
     setConvertedFiles(prev => {
       const newFiles = [...prev];
@@ -80,15 +83,16 @@ export default function Home() {
       return newFiles;
     });
   };
+
   const downloadFile = (content, fileName) => {
     if (!content) return;
-    
+
     // 文字列置換処理を適用
     const { processedContent, stats } = applyReplacements(content);
-    
+
     // 置換統計を更新
     setReplacementStats(stats);
-    
+
     // 置換統計をログに出力
     if (stats.totalReplacements > 0) {
       console.log(`文字列置換: ${stats.totalReplacements}件の置換を実行しました`);
@@ -96,7 +100,7 @@ export default function Home() {
         console.log(`  "${rule.searchText}" → "${rule.replaceText}": ${rule.count}件`);
       });
     }
-    
+
     const blob = new Blob([processedContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -106,12 +110,13 @@ export default function Home() {
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
-    
+
     // 置換統計を一定時間後にクリア
     setTimeout(() => {
       setReplacementStats(null);
     }, 5000);
   };
+
   return (
     <div className={styles.container}>
       <Head>
@@ -146,7 +151,7 @@ export default function Home() {
           {convertedFiles.length > 0 && (
             <div className={styles.results}>
               <h3>変換済みファイル</h3>
-              
+
               {/* 置換統計表示 */}
               {replacementStats && replacementStats.totalReplacements > 0 && (
                 <div className={styles.replacementStats}>
@@ -161,7 +166,7 @@ export default function Home() {
                   </div>
                 </div>
               )}
-              
+
               <div className={styles.fileList}>
                 {convertedFiles.map((file, index) => (
                   <div key={index} className={styles.fileItem}>
@@ -195,7 +200,7 @@ export default function Home() {
             </div>
           )}
         </div>
-        
+
         {/* 文字列置換設定 */}
         <StringReplacement
           replacementRules={replacementRules}
